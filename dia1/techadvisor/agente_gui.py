@@ -14,20 +14,53 @@ except ImportError:
 load_dotenv()
 
 
-def recomendar(interesse: str) -> str:
-    if not interesse or not interesse.strip():
-        return "Por favor, descreva seu interesse."
-    result = app.invoke({"interesse": interesse.strip()})
-    return result.get("resposta", "Não foi possível gerar uma recomendação.")
+def init_chat():
+    state = {}
+    result = app.invoke(state)
+    state.update(result)
+    history = []
+    history.append([None, state.get("resposta", "Olá! Eu sou o TechAdvisor. Como posso te chamar?")])
+    return history, state
 
 
-with gr.Blocks(title="TechAdvisor - Gradio") as demo:
-    gr.Markdown("## 🤖 TechAdvisor – Recomenda tecnologias com IA")
-    interesse = gr.Textbox(label="O que você quer aprender ou melhorar?", placeholder="Ex.: back-end com Python")
-    btn = gr.Button("Recomendar")
-    saida = gr.Textbox(label="Recomendação", lines=8)
+def chat_turn(user_message: str, history: list, state: dict):
+    state = state or {}
+    text = (user_message or "").strip()
 
-    btn.click(fn=recomendar, inputs=interesse, outputs=saida)
+    if text.lower() in ["/reset", "sair", "exit", "quit"]:
+        # Reinicia a conversa e envia nova saudação
+        state = {}
+        result = app.invoke(state)
+        state.update(result)
+        history = []
+        history.append([None, state.get("resposta", "Olá! Eu sou o TechAdvisor. Como posso te chamar?")])
+        return history, state
+
+    state["mensagem_usuario"] = text
+    result = app.invoke(state)
+    state.update(result)
+
+    reply = state.get("resposta", "Desculpe, não consegui responder agora.")
+    history = history + [[user_message, reply]]
+    return history, state
+
+
+with gr.Blocks(title="TechAdvisor - Chat") as demo:
+    gr.Markdown("## 🤖 TechAdvisor – Chat sobre tecnologia")
+    chatbot = gr.Chatbot(height=420)
+    state = gr.State({})
+    msg = gr.Textbox(label="Mensagem", placeholder="Diga 'tchau' para encerrar ou '/reset' para recomeçar")
+    send = gr.Button("Enviar")
+
+    demo.load(fn=init_chat, outputs=[chatbot, state])
+    send.click(fn=chat_turn, inputs=[msg, chatbot, state], outputs=[chatbot, state])
+    msg.submit(fn=chat_turn, inputs=[msg, chatbot, state], outputs=[chatbot, state])
+
+    def _clear_input():
+        return ""
+
+    send.click(fn=_clear_input, outputs=msg)
+    msg.submit(fn=_clear_input, outputs=msg)
 
 
 if __name__ == "__main__":

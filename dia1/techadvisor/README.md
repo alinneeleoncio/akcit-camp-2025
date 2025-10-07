@@ -1,9 +1,9 @@
-## TechAdvisor – Seu primeiro agente com LangChain + LangGraph
+## TechAdvisor – Agente conversacional com LangChain + LangGraph
 
-Um agente simples que recomenda tecnologias para estudar com base no seu interesse. Ele demonstra, de forma didática, como:
+Um agente conversacional simples que dá boas‑vindas, coleta o nome do usuário e entra em um ciclo de perguntas e respostas (Q&A) sobre tecnologia. Ele demonstra, de forma didática, como:
 - **carregar variáveis de ambiente** com `python-dotenv`;
 - **construir prompts** com `PromptTemplate` (LangChain);
-- **orquestrar um fluxo** com `LangGraph` utilizando um `StateGraph` com nós e arestas;
+- **orquestrar um fluxo** com `LangGraph` utilizando um `StateGraph` com múltiplos nós e arestas condicionais;
 - **conectar um LLM da OpenAI** via `langchain-openai` usando a interface moderna (LCEL): `prompt | llm | StrOutputParser()`.
 
 ### Por que este projeto?
@@ -65,55 +65,69 @@ Com o ambiente virtual ativo e `.env` configurado:
 python techadvisor/techadvisor_agent.py
 ```
 
-Exemplo de uso (interativo):
+Exemplo de conversa (CLI):
 ```
-🤖 TechAdvisor - Recomenda tecnologias com base em seus interesses!
+🤖 TechAdvisor - Agente conversacional sobre tecnologia
 
-O que você quer aprender ou melhorar? (ou 'sair'): back-end com Python
+Olá! Eu sou o TechAdvisor. Como posso te chamar?
 
-🔎 Resposta do agente:
-Sugestão: Estude FastAPI...
-------------------------------------------------------------
+Você: Maria
+
+🔎 Agente: Prazer, Maria! Como posso ajudar em tecnologia hoje?
+
+Você: Quero aprender back-end com Python
+
+🔎 Agente: Recomendo começar por FastAPI para criar APIs modernas...
+
+Você: tchau
+
+🔎 Agente: Até logo, Maria! 👋
+
+Conversa encerrada.
 ```
 
-Para sair, digite `sair` (ou `exit`/`quit`).
+Para encerrar, digite `sair`/`exit`/`quit` (comando do app) ou diga `tchau` (condição do grafo).
 
 ---
 
 ## Como funciona (arquitetura didática)
 
-- `PromptTemplate` (LangChain): define o texto-base com variável `{interesse}`.
+- `PromptTemplate` (LangChain): define o texto-base para Q&A com variáveis `{nome}` e `{pergunta}`.
 - `ChatOpenAI` (langchain-openai): cria o LLM (modelo da OpenAI) a ser usado.
 - `LCEL` (LangChain Expression Language): conectamos `prompt | llm | StrOutputParser()` formando uma pipeline:
-  - `prompt` injeta o `{interesse}`
+  - `prompt` injeta `{nome}` e `{pergunta}`
   - `llm` gera a resposta
   - `StrOutputParser()` garante que o resultado final seja string limpa
 - `LangGraph`:
-  - Criamos um `StateGraph(dict)`, onde o estado é um dicionário com chaves como `interesse` e `resposta`.
-  - Adicionamos um nó `recomendador` que lê `interesse`, chama a pipeline e grava `resposta` no estado.
-  - Definimos o ponto de entrada e uma aresta para `END` (fluxo simples de 1 passo).
-
-Fluxo resumido:
-1) Usuário digita um interesse.
-2) O estado entra no nó `recomendador`.
-3) A pipeline `prompt | llm | parser` roda e retorna um texto.
-4) O texto é salvo em `state['resposta']` e exibido.
+  - Estado: `{ "etapa", "mensagem_usuario", "nome", "resposta", "historico", ... }`.
+  - Nó `boas_vindas`: envia saudação e pergunta o nome. Transição para `aguardar_nome`.
+  - Nó `aguardar_nome`: espera input do usuário e extrai o nome. Transição para `responder_perguntas`.
+  - Nó `responder_perguntas`: responde usando LLM e mantém um loop (aresta para si mesmo via roteamento) até o usuário dizer "tchau".
+  - Condição de término: se a mensagem contém "tchau", transição para `END`.
+  - Um nó `roteador` decide, a cada turno, qual nó executar baseado em `state['etapa']`.
 
 ### Diagrama do grafo (Mermaid)
 
 ```mermaid
 flowchart LR
-    entry([Entry Point]) --> R["Nó: recomendador<br/>(prompt | llm | StrOutputParser)"]
-    R --> fim([END])
+    entry([Entry Point]) --> ROT["Nó: roteador"]
+    ROT -->|etapa=boas_vindas| BV["Nó: boas_vindas"]
+    ROT -->|etapa=aguardar_nome| AN["Nó: aguardar_nome"]
+    ROT -->|etapa=responder_perguntas| RP["Nó: responder_perguntas<br/>(prompt | llm | StrOutputParser)"]
+    ROT -->|etapa=fim| fim([END])
 
-    %% Anotações de estado (conceituais)
+    %% Turno único por invocação (cada nó retorna ao chamador)
+    BV --> fim
+    AN --> fim
+    RP --> fim
+
+    %% Estado mínimo
     subgraph Estado ["Estado"]
-      I["state['interesse']"] 
-      O["state['resposta']"]
+      E["state['etapa']"]
+      MU["state['mensagem_usuario']"]
+      N["state['nome']"]
+      R["state['resposta']"]
     end
-    
-    I -->|input do usuário| R
-    R --> O
 ```
 
 ---
@@ -130,37 +144,21 @@ flowchart LR
 - **Trocar o modelo**: no arquivo `techadvisor_agent.py`, altere `model="gpt-4o-mini"` para outro modelo compatível na sua conta.
 - **Ajustar criatividade**: modifique `temperature=0.7`.
 - **Mudar o prompt**: edite o `template_text` para orientar o agente a outro domínio (por exemplo, carreiras, cloud, dados, etc.).
-- **Adicionar etapas**: crie novos nós no `StateGraph` (por exemplo, um nó que valida a entrada do usuário antes de chamar o LLM) e conecte-os com `add_edge`.
+- **Adicionar etapas**: inclua nós adicionais (ex.: validação, desambiguação) e conecte via `add_conditional_edges`.
 
 ---
 
-## Problemas comuns e soluções
+## Interface web (Gradio)
 
-- "ModuleNotFoundError: No module named 'langchain_openai'"
-  - Rode: `pip install -r techadvisor/requirements.txt` com o venv ativo.
+Você pode iniciar um chat web simples com:
 
-- "API key inválida ou ausente"
-  - Verifique seu `.env` e se o terminal tem `OPENAI_API_KEY` carregada. Você pode testar com `python -c "import os; print(os.getenv('OPENAI_API_KEY'))"`.
+```bash
+python techadvisor/agente_gui.py
+```
 
-- "DeprecationWarning sobre LLMChain"
-  - Já migramos para `prompt | llm | StrOutputParser()`; se notar algo semelhante, confira se está rodando a versão mais recente do arquivo.
-
-- Conflitos de versões
-  - Atualize dependências: `pip install -U -r techadvisor/requirements.txt`.
-  - Em casos extremos, recrie o venv.
-
----
-
-## Próximos passos sugeridos no bootcamp
-
-- Criar um segundo nó que peça esclarecimentos quando o interesse for muito genérico.
-- Persistir conversas ou métricas com `langsmith`.
-- Conectar fontes externas (documentos, web) e usar RAG.
-- Adicionar ferramenta de busca e um roteador de nós no `LangGraph`.
-
----
-
-## Licença
-Projeto educacional para uso em bootcamp. Adapte livremente conforme necessário.
+Recursos:
+- Chatbot com estado (cada mensagem roda um turno no LangGraph)
+- Comando `/reset` para reiniciar a conversa
+- Dica: também é possível encerrar dizendo "tchau" (condição do grafo)
 
 
