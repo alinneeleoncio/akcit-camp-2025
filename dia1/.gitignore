@@ -9,6 +9,10 @@ __pycache__/
 *.pyzw
 *.pyzwz
 
+# env
+.env
+
+
 # venv
 venv/
 .venv/
