@@ -1,0 +1,26 @@
+# python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+*.pyzw
+*.pyzwz
+
+# venv
+venv/
+.venv/
+
+# data
+data/
+
+# logs
+logs/
+
+# reports
+*.pdf
+*.html
+*.xlsx
+*.csv
