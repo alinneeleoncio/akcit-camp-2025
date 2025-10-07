@@ -103,14 +103,17 @@ Fluxo resumido:
 
 ```mermaid
 flowchart LR
-    entry([Entry Point]) --> R["Nó: recomendador\n(prompt | llm | StrOutputParser)"]
+    entry([Entry Point]) --> R["Nó: recomendador<br/>(prompt | llm | StrOutputParser)"]
     R --> end([END])
 
     %% Anotações de estado (conceituais)
-    subgraph Estado
-      I["state['interesse']"] -->|input do usuário| R
-      R --> O["state['resposta']"]
+    subgraph Estado ["Estado"]
+      I["state['interesse']"] 
+      O["state['resposta']"]
     end
+    
+    I -->|input do usuário| R
+    R --> O
 ```
 
 ---
