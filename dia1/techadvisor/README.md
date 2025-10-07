@@ -104,7 +104,7 @@ Fluxo resumido:
 ```mermaid
 flowchart LR
     entry([Entry Point]) --> R["Nó: recomendador<br/>(prompt | llm | StrOutputParser)"]
-    R --> end([END_NODE])
+    R --> fim([END])
 
     %% Anotações de estado (conceituais)
     subgraph Estado ["Estado"]
