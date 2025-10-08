@@ -2,7 +2,7 @@
 # TechAdvisor – Agente conversacional com LangChain + LangGraph
 # ============================================================
 # Objetivo didático:
-# - Mostrar como conectar um LLM (OpenAI) usando a integração moderna `langchain-openai`.
+# - Mostrar como conectar um LLM (Gemini) usando a integração moderna `langchain-google-genai`.
 # - Ensinar a criar um `PromptTemplate` e compor uma pipeline com LCEL: `prompt | llm | parser`.
 # - Demonstrar a orquestração de um fluxo com múltiplos nós no LangGraph (`StateGraph`).
 # - Rodar de forma interativa no terminal, guiando o usuário por boas‑vindas, coleta de nome e Q&A.
@@ -11,7 +11,7 @@ import os
 import re
 from dotenv import load_dotenv
 from langchain.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
 from langgraph.graph import StateGraph, END
 
@@ -19,19 +19,22 @@ from langgraph.graph import StateGraph, END
 # 1. Carregar variáveis de ambiente
 # ============================================================
 # Busca um arquivo `.env` na raiz do projeto e carrega as variáveis
-# (por exemplo, OPENAI_API_KEY). Assim, não precisamos exportar
+# (por exemplo, GOOGLE_API_KEY). Assim, não precisamos exportar
 # manualmente no terminal a cada execução.
 load_dotenv()
 
+# Garante que a chave esteja disponível via ambiente
+os.environ.get("GOOGLE_API_KEY")
+
 # ============================================================
-# 2. Definir o LLM (OpenAI via langchain-openai)
+# 2. Definir o LLM (Gemini via langchain-google-genai)
 # ============================================================
-# `ChatOpenAI` é o wrapper do LangChain para modelos de chat da OpenAI.
+# `ChatGoogleGenerativeAI` é o wrapper do LangChain para modelos Gemini.
 # Parâmetros principais:
 # - model: nome do modelo (ajuste para o que sua conta permite).
 # - temperature: controla a criatividade (0 = mais determinístico; 1 = mais criativo).
-llm = ChatOpenAI(
-    model="gpt-4o-mini",
+llm = ChatGoogleGenerativeAI(
+    model="gemini-2.0-flash",
     temperature=0.7
 )
 
@@ -59,7 +62,7 @@ prompt = PromptTemplate(
 # LCEL (LangChain Expression Language) permite compor etapas como um pipeline.
 # Aqui encadeamos:
 #   1) prompt: recebe `{interesse}` e gera a string final de instrução
-#   2) llm: chama o modelo de chat da OpenAI com esse prompt
+#   2) llm: chama o modelo de chat do Gemini com esse prompt
 #   3) StrOutputParser(): converte a resposta para uma string simples
 qa_chain = prompt | llm | StrOutputParser()
 

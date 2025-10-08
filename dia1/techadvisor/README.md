@@ -4,7 +4,7 @@ Um agente conversacional simples que dá boas‑vindas, coleta o nome do usuári
 - **carregar variáveis de ambiente** com `python-dotenv`;
 - **construir prompts** com `PromptTemplate` (LangChain);
 - **orquestrar um fluxo** com `LangGraph` utilizando um `StateGraph` com múltiplos nós e arestas condicionais;
-- **conectar um LLM da OpenAI** via `langchain-openai` usando a interface moderna (LCEL): `prompt | llm | StrOutputParser()`.
+- **conectar um LLM Gemini (Google)** via `langchain-google-genai` usando a interface moderna (LCEL): `prompt | llm | StrOutputParser()`.
 
 ### Por que este projeto?
 - Ideal para bootcamps e primeiros passos em agentes de IA.
@@ -14,7 +14,7 @@ Um agente conversacional simples que dá boas‑vindas, coleta o nome do usuári
 
 ## Pré‑requisitos
 - Python 3.12+ (recomendado)
-- Conta e chave de API da OpenAI
+- Conta e chave de API do Google AI Studio (Gemini)
 - macOS, Linux ou Windows com terminal
 
 ---
@@ -43,7 +43,7 @@ pip install -r techadvisor/requirements.txt
 ```bash
 cp .env-sample .env
 # edite o arquivo .env e coloque sua chave real
-# OPENAI_API_KEY=sk-....
+# GOOGLE_API_KEY=AIza....
 ```
 
 > Dica: O arquivo `.env-sample` já existe na raiz do projeto. É só copiar para `.env` e preencher a chave.
@@ -54,7 +54,7 @@ py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r techadvisor\requirements.txt
 copy .env-sample .env
-# edite .env e informe OPENAI_API_KEY
+# edite .env e informe GOOGLE_API_KEY
 ```
 
 ---
@@ -93,7 +93,7 @@ Para encerrar, digite `sair`/`exit`/`quit` (comando do app) ou diga `tchau` (con
 ## Como funciona (arquitetura didática)
 
 - `PromptTemplate` (LangChain): define o texto-base para Q&A com variáveis `{nome}` e `{pergunta}`.
-- `ChatOpenAI` (langchain-openai): cria o LLM (modelo da OpenAI) a ser usado.
+- `ChatGoogleGenerativeAI` (langchain-google-genai): cria o LLM (Gemini) a ser usado.
 - `LCEL` (LangChain Expression Language): conectamos `prompt | llm | StrOutputParser()` formando uma pipeline:
   - `prompt` injeta `{nome}` e `{pergunta}`
   - `llm` gera a resposta
@@ -141,7 +141,7 @@ flowchart LR
 
 ## Personalizações comuns
 
-- **Trocar o modelo**: no arquivo `techadvisor_agent.py`, altere `model="gpt-4o-mini"` para outro modelo compatível na sua conta.
+- **Trocar o modelo**: no arquivo `techadvisor_agent.py`, altere `model="gemini-2.0-flash"` para outro modelo compatível na sua conta (ex.: `gemini-1.5-flash`).
 - **Ajustar criatividade**: modifique `temperature=0.7`.
 - **Mudar o prompt**: edite o `template_text` para orientar o agente a outro domínio (por exemplo, carreiras, cloud, dados, etc.).
 - **Adicionar etapas**: inclua nós adicionais (ex.: validação, desambiguação) e conecte via `add_conditional_edges`.

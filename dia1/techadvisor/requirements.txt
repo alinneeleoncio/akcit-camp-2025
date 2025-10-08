@@ -1,7 +1,7 @@
 langchain
 langgraph
-openai
 python-dotenv
-langchain-openai
+langchain-google-genai
+google-generativeai
 langchain-community
 gradio
